@@ -70,15 +70,18 @@ platforms** G4, G9, G17; **performance** G16; **ecosystem** G11; **measurement**
   with ffmpeg on 43 libx264 streams and on a Sony A7R V XAVC S-I clip (3840x2160, 4:2:2 10-bit,
   HLG): all-intra and long-GOP H.264 camera media opens without hardware. See
   `crates/h264/README.md`.
-- **Missing:** H.264 4:4:4 and lossless; HEVC has no 4:2:2 / RExt (Sony XAVC HS 4:2:2 10-bit, Canon,
-  Fujifilm and Panasonic HEVC 4:2:2 recordings).
+- **Have (2026-10-23):** NVDEC decodes 10-bit H.264 and 4:2:2 H.264 / HEVC (XAVC S-I, S and HS) on
+  NVIDIA Blackwell GPUs (RTX 50 series), on Linux in front of VA-API and on Windows behind Media
+  Foundation; bit-exact with ffmpeg on an RTX 5060 Ti (`crates/platform/tests/nvdec_high_bit_depth.rs`).
+- **Missing:** H.264 4:4:4 and lossless; HEVC has no 4:2:2 / RExt in software (Sony XAVC HS 4:2:2
+  10-bit, Canon, Fujifilm and Panasonic HEVC 4:2:2 recordings) for machines without such a GPU.
 - **Evidence:** #626 (Panasonic Lumix 4K 10-bit 4:2:2 MOV). On macOS VideoToolbox decodes 10-bit
   4:2:2 H.264 / HEVC on chips that support it; Windows Media Foundation and Linux decline them.
   H.264 now has the software fallback described above; HEVC 4:2:2 has none, so such a clip still
   fails. Premiere decodes them everywhere (and in hardware on Apple silicon, Intel and NVIDIA
   Blackwell).
 - **Impact:** camera originals recorded as HEVC 4:2:2 (Sony XAVC HS and similar) do not open on
-  Windows or Linux; H.264 camera originals open, decoded in software (4K 4:2:2 10-bit is well
+  Windows or Linux without an NVIDIA Blackwell GPU; H.264 camera originals open, decoded in software (4K 4:2:2 10-bit is well
   below real time on a CPU without a hardware decoder).
 - **Estimate:** HEVC Main 4:2:2 10 (RExt subset) 15–25 h. Doc: [codec-parity.md](codec-parity.md).
 
@@ -322,3 +325,4 @@ platforms** G4, G9, G17; **performance** G16; **ecosystem** G11; **measurement**
 | 2026-10-12 | minor | G10: MP1 (`A_MPEG/L1`) in Matroska imports (#1402) |
 | 2026-10-12 | minor | G10: OpenEXR PXR24 import |
 | 2026-10-16 | minor | G3: H.264 High 10 / High 4:2:2 decode in software, intra (XAVC S-I) and inter (long-GOP XAVC S) pictures; HEVC 4:2:2 remains |
+| 2026-10-23 | minor | G3: NVDEC on Linux takes 10-bit H.264 and 4:2:2 H.264 / HEVC on Blackwell GPUs; HEVC 4:2:2 in software remains |

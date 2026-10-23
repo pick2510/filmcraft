@@ -79,10 +79,13 @@ let availability = filmcraft_platform::register(); // Available("VideoToolbox") 
   ring and input path encode H.265, see [Hardware H.265 (HEVC) encoding (Windows,
   NVENC)](#hardware-h265-hevc-encoding-windows-nvenc).
 - **Linux and Windows: NVDEC, H.264 (`avcC`) and HEVC (`hvcC`)** on NVIDIA's driver (`nvdec/`).
-  Linux: H.264 8-bit and HEVC 8- / 10-bit, 4:2:0 progressive (unchanged). Windows: the camera
-  formats Media Foundation cannot decode, 4:2:2 and 10-bit H.264 (Sony XAVC S-I and S, Canon,
-  Panasonic), whichever of them the GPU's `cuvidGetDecoderCaps` accepts (4:2:2 needs a Blackwell GPU,
-  RTX 50 series; output surfaces NV12 / P016 / NV16 / P216). `libnvcuvid.so.1` and `libcuda.so.1`
+  H.264 and HEVC, 8- and 10-bit, 4:2:0 and 4:2:2, progressive, whichever of them the GPU's
+  `cuvidGetDecoderCaps` accepts (10-bit H.264 and 4:2:2, the camera formats such as Sony XAVC S-I,
+  S and HS, Canon, Panasonic, need a Blackwell GPU, RTX 50 series; output surfaces NV12 / P016 /
+  NV16 / P216). On Linux the NVDEC factory is asked about every H.264 / HEVC stream, in front of
+  VA-API (whose drivers decline 4:2:2 and 10-bit H.264); what the GPU declines goes on to VA-API and
+  the software decoders. On Windows it is only asked about what Media Foundation cannot decode, see
+  below. `libnvcuvid.so.1` and `libcuda.so.1`
   (Windows: `nvcuvid.dll`, `nvcuda.dll`, loaded from the system directory only, with
   `LOAD_LIBRARY_SEARCH_SYSTEM32`) are loaded at run time; without them (or without a device) nothing
   is registered on Linux and the stream stays with the software decoder on Windows. On Windows the
@@ -92,10 +95,11 @@ let availability = filmcraft_platform::register(); // Available("VideoToolbox") 
   (`tests/nvdec_lazy.rs`). A stream with an Intra profile (`NalStreamInfo::is_all_intra`) is
   `intra_only`, so the frame workers decode different frames on separate sessions in parallel (a 4K
   4:2:2 10-bit picture takes about 16 ms on one session, 9 ms of it on the GPU; six sessions reach
-  ~150 fps on an RTX 5090). Tested on that one GPU so far. NVIDIA's own parser takes the
+  ~150 fps on an RTX 5090). Tested on an RTX 5090 (Windows) and an RTX 5060 Ti (Linux: bit-exact
+  with the software decoders and with ffmpeg, `tests/nvdec_high_bit_depth.rs`, also HEVC 4:2:2). NVIDIA's own parser takes the
   stream as Annex B access units, so there is no host-side DPB: `cuvid::Session` creates the decoder
   in the parser's sequence callback, decodes in its picture callback, and reads each displayed
-  picture back (NV12 / P016) through the CUDA driver into the same planes as the other backends.
+  picture back (NV12 / P016, NV16 / P216 for 4:2:2) through the CUDA driver into the same planes as the other backends.
   The factory goes in front of VA-API's: what NVDEC declines still reaches VA-API (another GPU),
   then the software decoders. With both registered, `perf.stats` names NVDEC as the hardware
   backend, also for the streams VA-API decodes. The callback state is a `Box::into_raw` allocation
